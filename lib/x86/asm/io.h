@@ -1,6 +1,7 @@
 #ifndef _ASM_X86_IO_H_
 #define _ASM_X86_IO_H_
 
+#define __force
 #define __iomem
 
 #define inb inb
