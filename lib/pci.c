@@ -35,6 +35,7 @@ uint32_t pci_bar_mask(uint32_t bar)
 
 uint32_t pci_bar_get(pcidevaddr_t dev, int bar_num)
 {
+	assert(bar_num >= 0 && bar_num < 6);
 	return pci_config_readl(dev, PCI_BASE_ADDRESS_0 + bar_num * 4);
 }
 
@@ -56,11 +57,12 @@ phys_addr_t pci_bar_get_addr(pcidevaddr_t dev, int bar_num)
 
 void pci_bar_set_addr(pcidevaddr_t dev, int bar_num, phys_addr_t addr)
 {
+	bool is64 = pci_bar_is64(dev, bar_num);
 	int off = PCI_BASE_ADDRESS_0 + bar_num * 4;
 
 	pci_config_writel(dev, off, (uint32_t)addr);
 
-	if (pci_bar_is64(dev, bar_num))
+	if (is64)
 		pci_config_writel(dev, off + 4, (uint32_t)(addr >> 32));
 }
 
@@ -76,9 +78,12 @@ void pci_bar_set_addr(pcidevaddr_t dev, int bar_num, phys_addr_t addr)
  */
 static uint32_t pci_bar_size_helper(pcidevaddr_t dev, int bar_num)
 {
-	int off = PCI_BASE_ADDRESS_0 + bar_num * 4;
+	int off;
 	uint32_t bar, val;
 
+	assert(bar_num >= 0 && bar_num < 6);
+
+	off = PCI_BASE_ADDRESS_0 + bar_num * 4;
 	bar = pci_config_readl(dev, off);
 	pci_config_writel(dev, off, ~0u);
 	val = pci_config_readl(dev, off);
@@ -127,8 +132,13 @@ bool pci_bar_is64(pcidevaddr_t dev, int bar_num)
 	if (bar & PCI_BASE_ADDRESS_SPACE_IO)
 		return false;
 
-	return (bar & PCI_BASE_ADDRESS_MEM_TYPE_MASK) ==
-		      PCI_BASE_ADDRESS_MEM_TYPE_64;
+	if ((bar & PCI_BASE_ADDRESS_MEM_TYPE_MASK) ==
+		   PCI_BASE_ADDRESS_MEM_TYPE_64) {
+		assert(bar_num < 5);
+		return true;
+	}
+
+	return false;
 }
 
 void pci_bar_print(pcidevaddr_t dev, int bar_num)
