@@ -40,8 +40,7 @@ static unsigned long end_of_memory;
 unsigned long *install_pte(unsigned long *cr3,
 			   int pte_level,
 			   void *virt,
-			   unsigned long pte,
-			   unsigned long *pt_page)
+			   unsigned long pte)
 {
     int level;
     unsigned long *pt = cr3;
@@ -50,11 +49,7 @@ unsigned long *install_pte(unsigned long *cr3,
     for (level = PAGE_LEVEL; level > pte_level; --level) {
 	offset = ((unsigned long)virt >> ((level-1) * PGDIR_WIDTH + 12)) & PGDIR_MASK;
 	if (!(pt[offset] & PT_PRESENT_MASK)) {
-	    unsigned long *new_pt = pt_page;
-            if (!new_pt)
-                new_pt = alloc_page();
-            else
-                pt_page = 0;
+	    unsigned long *new_pt = alloc_page();
 	    memset(new_pt, 0, PAGE_SIZE);
 	    pt[offset] = virt_to_phys(new_pt) | PT_PRESENT_MASK | PT_WRITABLE_MASK | PT_USER_MASK;
 	}
@@ -89,14 +84,14 @@ unsigned long *install_large_page(unsigned long *cr3,
 				  void *virt)
 {
     return install_pte(cr3, 2, virt,
-		       phys | PT_PRESENT_MASK | PT_WRITABLE_MASK | PT_USER_MASK | PT_PAGE_SIZE_MASK, 0);
+		       phys | PT_PRESENT_MASK | PT_WRITABLE_MASK | PT_USER_MASK | PT_PAGE_SIZE_MASK);
 }
 
 unsigned long *install_page(unsigned long *cr3,
 			    unsigned long phys,
 			    void *virt)
 {
-    return install_pte(cr3, 1, virt, phys | PT_PRESENT_MASK | PT_WRITABLE_MASK | PT_USER_MASK, 0);
+    return install_pte(cr3, 1, virt, phys | PT_PRESENT_MASK | PT_WRITABLE_MASK | PT_USER_MASK);
 }
 
 

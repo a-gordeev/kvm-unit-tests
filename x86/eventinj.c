@@ -52,7 +52,7 @@ void do_pf_tss(void)
 {
 	printf("PF running\n");
 	install_pte(phys_to_virt(read_cr3()), 1, stack_va,
-		    stack_phys | PT_PRESENT_MASK | PT_WRITABLE_MASK, 0);
+		    stack_phys | PT_PRESENT_MASK | PT_WRITABLE_MASK);
 	invlpg(stack_va);
 }
 
@@ -363,7 +363,7 @@ int main()
 	printf("Try to divide by 0\n");
 	/* install read only pte */
 	install_pte(phys_to_virt(read_cr3()), 1, stack_va,
-		    stack_phys | PT_PRESENT_MASK, 0);
+		    stack_phys | PT_PRESENT_MASK);
 	invlpg(stack_va);
 	flush_phys_addr(stack_phys);
 	switch_stack(stack_va + 4095);
@@ -382,7 +382,7 @@ int main()
 	set_idt_sel(33, NP_SEL);
 	/* install read only pte */
 	install_pte(phys_to_virt(read_cr3()), 1, stack_va,
-		    stack_phys | PT_PRESENT_MASK, 0);
+		    stack_phys | PT_PRESENT_MASK);
 	invlpg(stack_va);
 	flush_idt_page();
 	flush_phys_addr(stack_phys);

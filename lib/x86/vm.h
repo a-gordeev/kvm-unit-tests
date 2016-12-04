@@ -18,8 +18,7 @@ unsigned long *get_pte(unsigned long *cr3, void *virt);
 unsigned long *install_pte(unsigned long *cr3,
                            int pte_level,
                            void *virt,
-                           unsigned long pte,
-                           unsigned long *pt_page);
+                           unsigned long pte);
 
 void *alloc_page();
 void free_page(void *page);
