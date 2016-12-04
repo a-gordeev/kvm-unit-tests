@@ -12,7 +12,6 @@ void vfree(void *mem);
 void *vmap(unsigned long long phys, unsigned long size);
 void *alloc_vpage(void);
 void *alloc_vpages(ulong nr);
-uint64_t virt_to_phys_cr3(void *mem);
 
 unsigned long *get_pte(unsigned long *cr3, void *virt);
 unsigned long *install_pte(unsigned long *cr3,

@@ -45,6 +45,11 @@ static inline uint32_t get_apf_reason(void)
 	return r;
 }
 
+static uint64_t virt_to_phys_cr3(void *mem)
+{
+    return (*get_pte(phys_to_virt(read_cr3()), mem) & PT_ADDR_MASK) + ((ulong)mem & (PAGE_SIZE - 1));
+}
+
 static void pf_isr(struct ex_regs *r)
 {
 	void* virt = (void*)((ulong)(buf+i) & ~(PAGE_SIZE-1));
