@@ -1,4 +1,5 @@
 #include "libcflat.h"
+#include "x86/vm.h"
 #include "x86/acpi.h"
 #include "asm/io.h"
 
@@ -39,9 +40,14 @@ extern char resume_start, resume_end;
 
 int main(int argc, char **argv)
 {
-	struct fadt_descriptor_rev1 *fadt = find_acpi_table_addr(FACP_SIGNATURE);
-	volatile u32 *resume_vector_ptr = find_resume_vector_addr();
+	struct fadt_descriptor_rev1 *fadt;
+	volatile u32 *resume_vector_ptr;
 	char *addr, *resume_vec = (void*)0x1000;
+
+	setup_vm();
+
+	fadt = find_acpi_table_addr(FACP_SIGNATURE);
+	resume_vector_ptr = find_resume_vector_addr();
 
 	*resume_vector_ptr = (u32)(ulong)resume_vec;
 

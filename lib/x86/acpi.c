@@ -1,5 +1,6 @@
 #include "libcflat.h"
 #include "acpi.h"
+#include "asm/io.h"
 
 void* find_acpi_table_addr(u32 sig)
 {
@@ -16,7 +17,7 @@ void* find_acpi_table_addr(u32 sig)
         if (!fadt) {
             return NULL;
         }
-        return (void*)(ulong)fadt->firmware_ctrl;
+        return ioremap(fadt->firmware_ctrl, PAGE_SIZE);
     }
 
     for(addr = 0xf0000; addr < 0x100000; addr += 16) {
@@ -26,16 +27,22 @@ void* find_acpi_table_addr(u32 sig)
     }
     if (addr == 0x100000) {
         printf("Can't find RSDP\n");
-        return 0;
+        return NULL;
     }
 
     if (sig == RSDP_SIGNATURE) {
         return rsdp;
     }
 
-    rsdt = (void*)(ulong)rsdp->rsdt_physical_address;
-    if (!rsdt || rsdt->signature != RSDT_SIGNATURE)
-        return 0;
+    if (!rsdp->rsdt_physical_address) {
+        return NULL;
+    }
+
+    rsdt = ioremap(rsdp->rsdt_physical_address, sizeof(*rsdt));
+    if (rsdt->signature != RSDT_SIGNATURE) {
+        return NULL;
+    }
+    rsdt = ioremap(rsdp->rsdt_physical_address, rsdt->length);
 
     if (sig == RSDT_SIGNATURE) {
         return rsdt;
@@ -43,10 +50,17 @@ void* find_acpi_table_addr(u32 sig)
 
     end = (void*)rsdt + rsdt->length;
     for (i=0; (void*)&rsdt->table_offset_entry[i] < end; i++) {
-        struct acpi_table *t = (void*)(ulong)rsdt->table_offset_entry[i];
-        if (t && t->signature == sig) {
-            return t;
+        struct acpi_table *table;
+
+        if (!rsdt->table_offset_entry[i]) {
+            continue;
+        }
+
+        table = ioremap(rsdt->table_offset_entry[i], sizeof(*table));
+        if (table->signature == sig) {
+            return ioremap(rsdt->table_offset_entry[i], table->length);
         }
     }
-   return NULL;
+
+    return NULL;
 }
