@@ -5,6 +5,6 @@ ldarch = elf32-i386
 cflatobjs += lib/x86/setjmp32.o
 
 tests = $(TEST_DIR)/taskswitch.flat $(TEST_DIR)/taskswitch2.flat \
-	$(TEST_DIR)/cmpxchg8b.flat
+	$(TEST_DIR)/cmpxchg8b.flat $(TEST_DIR)/pci-test.flat
 
 include $(TEST_DIR)/Makefile.common
