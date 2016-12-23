@@ -137,7 +137,7 @@ static void setup_mmu(unsigned long len)
     vfree_top = (void*)(3ul << 30);
 #endif
 
-    write_cr3(virt_to_phys(cr3));
+    write_cr3((unsigned long)cr3);
 #ifndef __x86_64__
     write_cr4(X86_CR4_PSE);
 #endif
