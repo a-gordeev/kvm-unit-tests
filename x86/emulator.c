@@ -785,11 +785,11 @@ asm(
 static void trap_emulator(uint64_t *mem, void *alt_insn_page,
 			struct insn_desc *alt_insn)
 {
-	ulong *cr3 = (ulong *)read_cr3();
+	ulong *cr3 = phys_to_virt(read_cr3());
 	void *insn_ram;
 	extern u8 insn_page[], test_insn[];
 
-	insn_ram = vmap(virt_to_phys(insn_page), 4096);
+	insn_ram = vmap((unsigned long)insn_page, 4096);
 	memcpy(alt_insn_page, insn_page, 4096);
 	memcpy(alt_insn_page + (test_insn - insn_page),
 			(void *)(alt_insn->ptr), alt_insn->len);
@@ -799,7 +799,7 @@ static void trap_emulator(uint64_t *mem, void *alt_insn_page,
 	   alt_insn_page (and keep the data TLB clear, for AMD decode assist).
 	   This will make the CPU trap on the insn_page instruction but the
 	   hypervisor will see alt_insn_page. */
-	install_page(cr3, virt_to_phys(insn_page), insn_ram);
+	install_page(cr3, (unsigned long)insn_page, insn_ram);
 	invlpg(insn_ram);
 	/* Load code TLB */
 	asm volatile("call *%0" : : "r"(insn_ram));
@@ -1104,9 +1104,9 @@ int main()
 	setup_vm();
 	setup_idt();
 	mem = alloc_vpages(2);
-	install_page((void *)read_cr3(), IORAM_BASE_PHYS, mem);
+	install_page(phys_to_virt(read_cr3()), IORAM_BASE_PHYS, mem);
 	// install the page twice to test cross-page mmio
-	install_page((void *)read_cr3(), IORAM_BASE_PHYS, mem + 4096);
+	install_page(phys_to_virt(read_cr3()), IORAM_BASE_PHYS, mem + 4096);
 	insn_page = alloc_page();
 	alt_insn_page = alloc_page();
 	insn_ram = vmap(virt_to_phys(insn_page), 4096);
