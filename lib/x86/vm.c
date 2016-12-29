@@ -101,6 +101,12 @@ static void setup_mmu_range(unsigned long *cr3, unsigned long start,
 	u64 max = (u64)len + (u64)start;
 	u64 phys = start;
 
+	while (phys + PAGE_SIZE <= max) {
+		if (!(phys % LARGE_PAGE_SIZE))
+			break;
+		install_page(cr3, phys, (void *)(ulong)phys);
+		phys += PAGE_SIZE;
+	}
 	while (phys + LARGE_PAGE_SIZE <= max) {
 		install_large_page(cr3, phys, (void *)(ulong)phys);
 		phys += LARGE_PAGE_SIZE;
