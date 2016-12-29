@@ -96,7 +96,7 @@ unsigned long *install_page(unsigned long *cr3,
 }
 
 
-static void setup_mmu_range(unsigned long *cr3, unsigned long start,
+static void setup_mmu_range(unsigned long *cr3, unsigned long start, void *virt,
 			    unsigned long len)
 {
 	u64 max = (u64)len + (u64)start;
@@ -105,16 +105,19 @@ static void setup_mmu_range(unsigned long *cr3, unsigned long start,
 	while (phys + PAGE_SIZE <= max) {
 		if (!(phys % LARGE_PAGE_SIZE))
 			break;
-		install_page(cr3, phys, (void *)(ulong)phys);
+		install_page(cr3, phys, virt);
 		phys += PAGE_SIZE;
+		virt += PAGE_SIZE;
 	}
 	while (phys + LARGE_PAGE_SIZE <= max) {
-		install_large_page(cr3, phys, (void *)(ulong)phys);
+		install_large_page(cr3, phys, virt);
 		phys += LARGE_PAGE_SIZE;
+		virt += LARGE_PAGE_SIZE;
 	}
 	while (phys + PAGE_SIZE <= max) {
-		install_page(cr3, phys, (void *)(ulong)phys);
+		install_page(cr3, phys, virt);
 		phys += PAGE_SIZE;
+		virt += PAGE_SIZE;
 	}
 }
 
@@ -128,14 +131,14 @@ static void setup_mmu(unsigned long len)
     if (len < (1ul << 32))
         len = (1ul << 32);  /* map mmio 1:1 */
 
-    setup_mmu_range(cr3, 0, len);
+    setup_mmu_range(cr3, 0, (void *)0, len);
 #else
     if (len > (1ul << 31))
 	    len = (1ul << 31);
 
     /* 0 - 2G memory, 2G-3G valloc area, 3G-4G mmio */
-    setup_mmu_range(cr3, 0, len);
-    setup_mmu_range(cr3, 3ul << 30, (1ul << 30));
+    setup_mmu_range(cr3, 0, (void *)0, len);
+    setup_mmu_range(cr3, 3ul << 30, (void *)(3ul << 30), (1ul << 30));
     vfree_top = (void*)(3ul << 30);
 #endif
 
