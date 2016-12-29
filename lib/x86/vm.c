@@ -1,12 +1,18 @@
 #include "fwcfg.h"
 #include "vm.h"
 #include "libcflat.h"
+#include "asm/page.h"
 
-static void *free = 0;
-static void *vfree_top = 0;
+extern char edata;
+static void *free = &edata;
+static void *vfree_top;
+static unsigned long end_of_memory;
+static int pg_on = 0;
 
 static void free_memory(void *mem, unsigned long size)
 {
+    free = NULL;
+
     while (size >= PAGE_SIZE) {
 	*(void **)mem = free;
 	free = mem;
@@ -34,8 +40,29 @@ void free_page(void *page)
     free = page;
 }
 
-extern char edata;
-static unsigned long end_of_memory;
+static void *alloc_page_no_pg()
+{
+    void *p = free;
+
+    free += PAGE_SIZE;
+
+    return p;
+}
+
+static void *__alloc_page_table()
+{
+    return pg_on ? alloc_page() : alloc_page_no_pg();
+}
+
+static inline unsigned long __virt_to_phys(void *virt)
+{
+    return pg_on ? virt_to_phys(virt) : (unsigned long)virt;
+}
+
+static inline void *__phys_to_virt(unsigned long phys)
+{
+    return pg_on ? phys_to_virt(phys) : (void *)phys;
+}
 
 unsigned long *install_pte(unsigned long *cr3,
 			   int pte_level,
@@ -49,11 +76,11 @@ unsigned long *install_pte(unsigned long *cr3,
     for (level = PAGE_LEVEL; level > pte_level; --level) {
 	offset = ((unsigned long)virt >> ((level-1) * PGDIR_WIDTH + 12)) & PGDIR_MASK;
 	if (!(pt[offset] & PT_PRESENT_MASK)) {
-	    unsigned long *new_pt = alloc_page();
+	    unsigned long *new_pt = __alloc_page_table();
 	    memset(new_pt, 0, PAGE_SIZE);
-	    pt[offset] = virt_to_phys(new_pt) | PT_PRESENT_MASK | PT_WRITABLE_MASK | PT_USER_MASK;
+	    pt[offset] = __virt_to_phys(new_pt) | PT_PRESENT_MASK | PT_WRITABLE_MASK | PT_USER_MASK;
 	}
-	pt = phys_to_virt(pt[offset] & PT_ADDR_MASK);
+	pt = __phys_to_virt(pt[offset] & PT_ADDR_MASK);
     }
     offset = ((unsigned long)virt >> ((level-1) * PGDIR_WIDTH + 12)) & PGDIR_MASK;
     pt[offset] = pte;
@@ -83,8 +110,7 @@ unsigned long *install_large_page(unsigned long *cr3,
 				  unsigned long phys,
 				  void *virt)
 {
-    return install_pte(cr3, 2, virt,
-		       phys | PT_PRESENT_MASK | PT_WRITABLE_MASK | PT_USER_MASK | PT_PAGE_SIZE_MASK);
+    return install_pte(cr3, 2, virt, phys | PT_PRESENT_MASK | PT_WRITABLE_MASK | PT_USER_MASK | PT_PAGE_SIZE_MASK);
 }
 
 unsigned long *install_page(unsigned long *cr3,
@@ -120,25 +146,39 @@ static void setup_mmu_range(unsigned long *cr3, unsigned long start, void *virt,
 	}
 }
 
+#define SZ_1G		(1ul << 30)
+#define SZ_3G		(3ul << 30)
+#define MAX_PT_NR	(2048 + 4)
+
+#define PT_START	((unsigned long)&edata)
+#define PT_END		(PT_START + (MAX_PT_NR * PAGE_SIZE))
+
 static void setup_mmu(unsigned long len)
 {
-    unsigned long *cr3 = alloc_page();
+    unsigned long *cr3 = alloc_page_no_pg();
+
+#if (PAGE_OFFSET != SZ_1G)
+#error PAGE_OFFSET must be 1G
+#endif
 
     memset(cr3, 0, PAGE_SIZE);
 
+    if (len > SZ_1G)
+	    len = SZ_1G;
+    assert(len >= PT_END);
+
+    /*  0-&edata code and data */
+    setup_mmu_range(cr3, 0, 0, PT_START);
+    /* 1G-2G memory */
+    setup_mmu_range(cr3, PT_START, phys_to_virt(PT_START), len - PT_START);
+    /* 3G-4G mmio */
+    setup_mmu_range(cr3, SZ_3G, (void *)SZ_3G, SZ_1G);
+
 #ifdef __x86_64__
-    if (len < (1ul << 32))
-        len = (1ul << 32);  /* map mmio 1:1 */
-
-    setup_mmu_range(cr3, 0, (void *)0, len);
+    vfree_top = 0;
 #else
-    if (len > (1ul << 31))
-	    len = (1ul << 31);
-
-    /* 0 - 2G memory, 2G-3G valloc area, 3G-4G mmio */
-    setup_mmu_range(cr3, 0, (void *)0, len);
-    setup_mmu_range(cr3, 3ul << 30, (void *)(3ul << 30), (1ul << 30));
-    vfree_top = (void*)(3ul << 30);
+    /* 2G-3G valloc area */
+    vfree_top = (void *)(SZ_3G);
 #endif
 
     write_cr3((unsigned long)cr3);
@@ -146,6 +186,8 @@ static void setup_mmu(unsigned long len)
     write_cr4(X86_CR4_PSE);
 #endif
     write_cr0(X86_CR0_PG |X86_CR0_PE | X86_CR0_WP);
+
+    pg_on = 1;
 
     printf("paging enabled\n");
     printf("cr0 = %lx\n", read_cr0());
@@ -157,8 +199,9 @@ void setup_vm()
 {
     assert(!end_of_memory);
     end_of_memory = fwcfg_get_u64(FW_CFG_RAM_SIZE);
-    free_memory(&edata, end_of_memory - (unsigned long)&edata);
+    end_of_memory -= 0x20 * PAGE_SIZE;	/* s3 ACPI tables hack */
     setup_mmu(end_of_memory);
+    free_memory(phys_to_virt(PT_END), end_of_memory - PT_END);
 }
 
 void *vmalloc(unsigned long size)
