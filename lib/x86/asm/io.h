@@ -45,18 +45,6 @@ static inline void outl(uint32_t value, unsigned long port)
     asm volatile("outl %0, %w1" : : "a"(value), "Nd"((unsigned short)port));
 }
 
-#define virt_to_phys virt_to_phys
-static inline unsigned long virt_to_phys(const void *virt)
-{
-    return (unsigned long)virt;
-}
-
-#define phys_to_virt phys_to_virt
-static inline void *phys_to_virt(unsigned long phys)
-{
-    return (void *)phys;
-}
-
 #define ioremap ioremap
 void __iomem *ioremap(phys_addr_t phys_addr, size_t size);
 

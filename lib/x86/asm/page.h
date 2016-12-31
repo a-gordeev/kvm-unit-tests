@@ -10,6 +10,8 @@
 #include <linux/const.h>
 #include <bitops.h>
 
+#define PAGE_OFFSET	0x40000000
+
 #define PAGE_SHIFT	12
 #define PAGE_SIZE	(_AC(1,UL) << PAGE_SHIFT)
 #define PAGE_MASK	(~(PAGE_SIZE-1))
@@ -40,6 +42,9 @@
 #define	PGDIR_WIDTH	10
 #define	PGDIR_MASK	1023
 #endif
+
+#define __va(x)		((void *)((unsigned long)(x) + PAGE_OFFSET))
+#define __pa(x)		((unsigned long)(x) - PAGE_OFFSET)
 
 #endif /* !__ASSEMBLY__ */
 #endif
