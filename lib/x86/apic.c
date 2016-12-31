@@ -181,3 +181,10 @@ void mask_pic_interrupts(void)
     outb(0xff, 0x21);
     outb(0xff, 0xa1);
 }
+
+void ioremap_apic(void)
+{
+    g_apic   = ioremap((phys_addr_t)g_apic,   PAGE_SIZE);
+    g_ioapic = ioremap((phys_addr_t)g_ioapic, PAGE_SIZE);
+}
+

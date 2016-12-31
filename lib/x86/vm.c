@@ -1,6 +1,7 @@
 #include "fwcfg.h"
 #include "vm.h"
 #include "libcflat.h"
+#include "apic.h"
 
 static void *free = 0;
 static void *vfree_top = 0;
@@ -156,6 +157,7 @@ void setup_vm()
     end_of_memory = fwcfg_get_u64(FW_CFG_RAM_SIZE);
     free_memory(&edata, end_of_memory - (unsigned long)&edata);
     setup_mmu(end_of_memory);
+    ioremap_apic();
 }
 
 void *vmalloc(unsigned long size)

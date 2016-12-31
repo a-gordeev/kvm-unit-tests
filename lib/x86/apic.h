@@ -39,4 +39,6 @@ uint32_t apic_id(void);
 int enable_x2apic(void);
 void reset_apic(void);
 
+void ioremap_apic(void);
+
 #endif
