@@ -2,6 +2,7 @@
 #include "apic.h"
 #include "msr.h"
 #include "processor.h"
+#include "asm/io.h"
 
 static void *g_apic = (void *)0xfee00000;
 static void *g_ioapic = (void *)0xfec00000;
@@ -12,11 +13,6 @@ struct apic_ops {
     void (*icr_write)(u32 val, u32 dest);
     u32 (*id)(void);
 };
-
-static void outb(unsigned char data, unsigned short port)
-{
-    asm volatile ("out %0, %1" : : "a"(data), "d"(port));
-}
 
 void eoi(void)
 {
