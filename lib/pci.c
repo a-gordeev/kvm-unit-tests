@@ -117,7 +117,24 @@ bool pci_bar_is_memory(pcidevaddr_t dev, int bar_num)
 
 bool pci_bar_is_valid(pcidevaddr_t dev, int bar_num)
 {
-	return pci_bar_get(dev, bar_num);
+	bool is64 = false;
+	int i;
+
+	assert(bar_num >= 0 && bar_num < 6);
+
+	for (i = 0; i < 6; i++) {
+		if (is64) {
+			assert(i == bar_num);	/* high part of 64-bit BAR */
+			assert(pci_bar_is64(dev, i));
+
+			is64 = false;
+		} else {
+			is64 = pci_bar_is64(dev, i);
+		}
+	}
+	assert(!is64);				/* incomplete 64-bit BAR */
+
+	return pci_bar_size(dev, bar_num);
 }
 
 bool pci_bar_is64(pcidevaddr_t dev, int bar_num)
