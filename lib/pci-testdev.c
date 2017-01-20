@@ -176,7 +176,7 @@ int pci_testdev(void)
 		return -1;
 	}
 
-	ret = pci_bar_is_valid(dev, 0) && pci_bar_is_valid(dev, 1);
+	ret = pci_bar_exists(dev, 0) && pci_bar_exists(dev, 1);
 	assert(ret);
 
 	addr = pci_bar_get_addr(dev, 0);

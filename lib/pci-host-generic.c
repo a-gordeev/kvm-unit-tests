@@ -175,8 +175,7 @@ static bool pci_alloc_resource(pcidevaddr_t dev, int bar_num, u64 *addr)
 
 	*addr = ~0;
 
-	size = pci_bar_size(dev, bar_num);
-	if (!size)
+	if (!pci_bar_exists(dev, bar_num))
 		return false;
 
 	bar = pci_bar_get(dev, bar_num);
@@ -199,6 +198,7 @@ static bool pci_alloc_resource(pcidevaddr_t dev, int bar_num, u64 *addr)
 		return false;
 	}
 
+	size = pci_bar_size(dev, bar_num);
 	pci_addr = ALIGN(as->pci_start + as->allocated, size);
 	size += pci_addr - (as->pci_start + as->allocated);
 	assert(as->allocated + size <= as->size);

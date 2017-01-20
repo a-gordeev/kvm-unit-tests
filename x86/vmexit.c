@@ -388,7 +388,7 @@ int main(int ac, char **av)
 	pcidev = pci_find_dev(PCI_VENDOR_ID_REDHAT, PCI_DEVICE_ID_REDHAT_TEST);
 	if (pcidev != PCIDEVADDR_INVALID) {
 		for (i = 0; i < PCI_TESTDEV_NUM_BARS; i++) {
-			if (!pci_bar_is_valid(pcidev, i)) {
+			if (!pci_bar_exists(pcidev, i)) {
 				continue;
 			}
 			if (pci_bar_is_memory(pcidev, i)) {

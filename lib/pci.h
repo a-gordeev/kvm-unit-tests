@@ -43,6 +43,11 @@ extern bool pci_bar_is_valid(pcidevaddr_t dev, int bar_num);
 extern void pci_bar_print(pcidevaddr_t dev, int bar_num);
 extern void pci_dev_print_id(pcidevaddr_t dev);
 
+static inline bool pci_bar_exists(pcidevaddr_t dev, int bar_num)
+{
+	return pci_bar_size(dev, bar_num);
+}
+
 int pci_testdev(void);
 
 /*

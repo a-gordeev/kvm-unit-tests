@@ -124,17 +124,20 @@ bool pci_bar_is_valid(pcidevaddr_t dev, int bar_num)
 
 	for (i = 0; i < 6; i++) {
 		if (is64) {
-			assert(i == bar_num);	/* high part of 64-bit BAR */
-			assert(pci_bar_is64(dev, i));
+			if (i == bar_num)	/* high part of 64-bit BAR */
+				return false;
+			if (pci_bar_is64(dev, i))
+				return false;
 
 			is64 = false;
 		} else {
 			is64 = pci_bar_is64(dev, i);
 		}
 	}
-	assert(!is64);				/* incomplete 64-bit BAR */
+	if (is64)				/* incomplete 64-bit BAR */
+		return false;
 
-	return pci_bar_size(dev, bar_num);
+	return true;
 }
 
 bool pci_bar_is64(pcidevaddr_t dev, int bar_num)
@@ -153,12 +156,12 @@ void pci_bar_print(pcidevaddr_t dev, int bar_num)
 	phys_addr_t size, start, end;
 	uint32_t bar;
 
-	size = pci_bar_size(dev, bar_num);
-	if (!size)
+	if (!pci_bar_exists(dev, bar_num))
 		return;
 
 	bar = pci_bar_get(dev, bar_num);
 	start = pci_bar_get_addr(dev, bar_num);
+	size = pci_bar_size(dev, bar_num);
 	end = start + size - 1;
 
 	if (pci_bar_is64(dev, bar_num)) {
