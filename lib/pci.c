@@ -35,6 +35,8 @@ uint32_t pci_bar_mask(uint32_t bar)
 
 uint32_t pci_bar_get(pcidevaddr_t dev, int bar_num)
 {
+	assert(bar_num >= 0 && bar_num < 6);
+
 	return pci_config_readl(dev, PCI_BASE_ADDRESS_0 + bar_num * 4);
 }
 
@@ -44,6 +46,9 @@ phys_addr_t pci_bar_get_addr(pcidevaddr_t dev, int bar_num)
 	uint32_t mask = pci_bar_mask(bar);
 	uint64_t addr = bar & mask;
 	phys_addr_t phys_addr;
+
+	if (!pci_bar_exists(dev, bar_num))
+		return INVALID_PHYS_ADDR;
 
 	if (pci_bar_is64(dev, bar_num))
 		addr |= (uint64_t)pci_bar_get(dev, bar_num + 1) << 32;
@@ -57,6 +62,8 @@ phys_addr_t pci_bar_get_addr(pcidevaddr_t dev, int bar_num)
 void pci_bar_set_addr(pcidevaddr_t dev, int bar_num, phys_addr_t addr)
 {
 	int off = PCI_BASE_ADDRESS_0 + bar_num * 4;
+
+	assert(pci_bar_exists(dev, bar_num));
 
 	pci_config_writel(dev, off, (uint32_t)addr);
 
@@ -90,6 +97,8 @@ static uint32_t pci_bar_size_helper(pcidevaddr_t dev, int bar_num)
 phys_addr_t pci_bar_size(pcidevaddr_t dev, int bar_num)
 {
 	uint32_t bar, size;
+
+	assert(pci_bar_is_valid(dev, bar_num));
 
 	size = pci_bar_size_helper(dev, bar_num);
 	if (!size)
